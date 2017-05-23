@@ -23,9 +23,20 @@ public class RPMSensorApp implements SerialPortEventListener {
     private OkHttpClient client;
     private Gson gson;
     private final String EFC_URL = "http://efcv2.azurewebsites.net/api/ValuesApi/PostValuesi";
+    private final String FEEDBACK_URL = "http://localhost/api/motor/setrpmreading";
+    
+    private static String port = null;
 
     public static void main(String[] args) {
+        if (args.length <= 0) {
+            System.err.println("You should provide a port argument");
+            System.exit(1);
+        }
+        
         System.out.println("Hello World!");
+        port = args[0];
+        
+        
 //        System.out.println(new SimpleDateFormat("YYYY-MM-d HH:MM:ss").format(new Date()).toString());
         new RPMSensorApp();
     }
@@ -33,7 +44,7 @@ public class RPMSensorApp implements SerialPortEventListener {
     public RPMSensorApp() {
         client = new OkHttpClient();
         gson = new Gson();
-        SerialPort serialPort = new SerialPort("/dev/ttyUSB1");
+        SerialPort serialPort = new SerialPort(port);
         try {
             serialPort.openPort();
             serialPort.setParams(SerialPort.BAUDRATE_9600,
@@ -80,6 +91,21 @@ public class RPMSensorApp implements SerialPortEventListener {
 
                         public void onFailure(Call call, IOException e) {
                             e.printStackTrace();
+                        }
+                    });
+                    
+                    Request.Builder builder2 = new Request.Builder().post(RequestBody.create(JSON, valueBuffer[9]));
+                    Request request2 = builder2.url(FEEDBACK_URL).build();
+                    client.newCall(request).enqueue(new Callback() {
+                        
+                        public void onResponse(Call call, Response response) throws IOException {
+                            // TODO Auto-generated method stub
+                            
+                        }
+                        
+                        public void onFailure(Call call, IOException e) {
+                            // TODO Auto-generated method stub
+                            
                         }
                     });
                     // }
