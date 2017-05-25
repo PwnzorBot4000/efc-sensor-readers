@@ -18,7 +18,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class RPMSensorApp implements SerialPortEventListener {
+public class RPMSensorApp {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private OkHttpClient client;
     private Gson gson;
@@ -32,18 +32,14 @@ public class RPMSensorApp implements SerialPortEventListener {
             System.err.println("You should provide a port argument");
             System.exit(1);
         }
-        
-        System.out.println("Hello World!");
         port = args[0];
-        
-        
-//        System.out.println(new SimpleDateFormat("YYYY-MM-d HH:MM:ss").format(new Date()).toString());
         new RPMSensorApp();
     }
 
     public RPMSensorApp() {
         client = new OkHttpClient();
         gson = new Gson();
+        System.out.println("Opening port " + port);
         SerialPort serialPort = new SerialPort(port);
         try {
             serialPort.openPort();
@@ -53,13 +49,13 @@ public class RPMSensorApp implements SerialPortEventListener {
                                  SerialPort.PARITY_NONE,
                                  false,
                                  false);
+            System.out.println("Port " + port + " opened successfully");
 
             String valueBuffer[] = new String[30];
             int i = 0;
             do {
                 String value = "";
                 String inputChar = serialPort.readString(1);
-//                System.out.println(inputChar);
                 while ((int) inputChar.charAt(0) != 10) {
                     if ((int) inputChar.charAt(0) != 13) value += inputChar;
                     inputChar = serialPort.readString(1);
@@ -70,13 +66,14 @@ public class RPMSensorApp implements SerialPortEventListener {
                 i++;
                 i %= 30;
                 if (i == 0) {
-                    ValuesI valuesI = new ValuesI();
-                    valuesI.value = Integer.parseInt(valueBuffer[9]);
-                    valuesI.sensoriId = 1;
-                    valuesI.timestamp = new SimpleDateFormat("YYYY-MM-d HH:MM:ss").format(new Date()).toString();
-                    System.out.println("Senting: " + gson.toJson(valuesI));
+                    RpmSensorValue rpmSensorValue = new RpmSensorValue();
+                    
+                    rpmSensorValue.setValue(Integer.parseInt(valueBuffer[valueBuffer.length-1]));
+                    rpmSensorValue.setSensoriId(1);
+                    rpmSensorValue.setTimeStamp(new SimpleDateFormat("YYYY-MM-d HH:MM:ss").format(new Date()).toString());
+                    System.out.println("Senting: " + gson.toJson(rpmSensorValue));
                     Request.Builder builder = new Request.Builder().post(RequestBody.create(JSON,
-                                                                                            gson.toJson(valuesI)));
+                                                                                            gson.toJson(rpmSensorValue)));
                     Request request = builder.url(EFC_URL).build();
                     client.newCall(request).enqueue(new Callback() {
 
@@ -99,12 +96,10 @@ public class RPMSensorApp implements SerialPortEventListener {
                     client.newCall(request).enqueue(new Callback() {
                         
                         public void onResponse(Call call, Response response) throws IOException {
-                            // TODO Auto-generated method stub
                             
                         }
                         
                         public void onFailure(Call call, IOException e) {
-                            // TODO Auto-generated method stub
                             
                         }
                     });
@@ -113,12 +108,6 @@ public class RPMSensorApp implements SerialPortEventListener {
             } while (true);
         } catch (SerialPortException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void serialEvent(SerialPortEvent serialPortEvent) {
-        if (serialPortEvent.getEventType() == SerialPortEvent.BREAK) {
-            System.out.println("Event arrived!");
         }
     }
 }
